@@ -7,6 +7,30 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+VARIAVEIS_OBRIGATORIAS = (
+    "FLASK_SECRET_KEY",
+    "SUPABASE_URL",
+    "SUPABASE_PUBLISHABLE_KEY",
+    "SUPABASE_SECRET_KEY",
+)
+VARIAVEIS_BANCO = ("SUPABASE_DB_HOST", "SUPABASE_DB_USER", "SUPABASE_DB_PASSWORD")
+
+
+def _verificar_ambiente() -> None:
+    """Falha com uma mensagem clara se faltar variável (ex.: não cadastrada na Vercel)."""
+    faltando = [nome for nome in VARIAVEIS_OBRIGATORIAS if not os.getenv(nome)]
+    if not os.getenv("DATABASE_URL"):
+        faltando += [nome for nome in VARIAVEIS_BANCO if not os.getenv(nome)]
+    if faltando:
+        raise RuntimeError(
+            "Variáveis de ambiente ausentes: "
+            + ", ".join(faltando)
+            + ". Defina-as no .env (local) ou nas Environment Variables da hospedagem."
+        )
+
+
+_verificar_ambiente()
+
 
 def _url_banco() -> str:
     """Monta a URL do PostgreSQL do Supabase para o SQLAlchemy.
