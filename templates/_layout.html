@@ -1,0 +1,105 @@
+{#
+  Layout das áreas logadas: menu lateral (desktop) / gaveta (celular).
+  Variáveis que a página pode definir com {% set %} logo após o extends:
+    tema_pagina  -> "claro" (padrão) ou "escuro"
+    menu_ativo   -> chave do item de menu destacado
+#}
+{% extends "base.html" %}
+{% from "_icones.html" import icone %}
+
+{% block corpo %}
+{% set nomes_perfil = {
+  "aluno": "Aluno",
+  "coordenador": "Coordenação",
+  "avaliador": "Avaliador externo",
+  "admin": "Administração",
+} %}
+{% set perfil = current_user.perfil if current_user.is_authenticated else "" %}
+{% set rota_admin = "admin_escuro" if tema_pagina == "escuro" else "admin" %}
+
+{% if perfil == "aluno" %}
+  {% set itens = [
+    ("avaliacoes", url_for("aluno_avaliacoes"), "lista", "Minhas avaliações"),
+  ] %}
+{% elif perfil == "coordenador" %}
+  {% set itens = [
+    ("inicio", url_for("coordenador") ~ "#inicio", "inicio", "Visão geral"),
+    ("avaliacoes", url_for("coordenador") ~ "#avaliacoes", "lista", "Avaliações"),
+    ("resultados", url_for("coordenador") ~ "#resultados", "grafico", "Resultados"),
+    ("participacao", url_for("coordenador") ~ "#participacao", "usuarios", "Participação"),
+    ("relatorios", url_for("coordenador") ~ "#relatorios", "documento", "Relatórios"),
+  ] %}
+{% elif perfil == "avaliador" %}
+  {% set itens = [
+    ("dashboards", url_for("modelo3") ~ "#dashboards", "grafico", "Dashboards"),
+    ("mural", url_for("modelo3") ~ "#mural", "mensagem", "Devolutivas"),
+    ("relatorios", url_for("modelo3") ~ "#relatorios", "documento", "Relatórios"),
+    ("contato", url_for("modelo3") ~ "#contato", "contato", "Contato"),
+  ] %}
+{% elif perfil == "admin" %}
+  {% set itens = [
+    ("inicio", url_for(rota_admin) ~ "#inicio", "inicio", "Visão geral"),
+    ("cadastro", url_for(rota_admin) ~ "#cadastro", "mais", "Cadastrar usuário"),
+    ("usuarios", url_for(rota_admin) ~ "#usuarios", "usuarios", "Usuários"),
+  ] %}
+{% else %}
+  {% set itens = [] %}
+{% endif %}
+
+<input type="checkbox" id="menu-aberto" aria-hidden="true">
+
+<header class="topo">
+  <a class="marca" href="{{ itens[0][1] if itens else url_for('inicio') }}">
+    <span class="marca-sigla">CPA</span>
+    <span><b>Portal CPA</b><small>{{ nomes_perfil.get(perfil, "Faculdade Impacta") }}</small></span>
+  </a>
+  <label for="menu-aberto" class="botao-menu">{{ icone("menu") }}<span class="sr-only">Abrir menu</span></label>
+</header>
+
+<nav class="menu" aria-label="Menu principal">
+  <a class="marca" href="{{ itens[0][1] if itens else url_for('inicio') }}">
+    <span class="marca-sigla">CPA</span>
+    <span><b>Portal CPA</b><small>Faculdade Impacta</small></span>
+  </a>
+
+  <p class="menu-rotulo">{{ nomes_perfil.get(perfil, "Menu") }}</p>
+  <ul>
+    {% for chave, link, nome_icone, rotulo in itens %}
+    <li><a href="{{ link }}" class="{{ 'ativo' if chave == menu_ativo }}">{{ icone(nome_icone) }}{{ rotulo }}</a></li>
+    {% endfor %}
+  </ul>
+
+  <div class="menu-rodape">
+    {% if current_user.is_authenticated %}
+    <div class="usuario">Conectado como <b>{{ current_user.nome }}</b></div>
+    {% endif %}
+    <ul>
+      {% if perfil == "admin" %}
+        {% if tema_pagina == "escuro" %}
+        <li><a href="{{ url_for('admin') }}">{{ icone("sol") }}Tema claro</a></li>
+        {% else %}
+        <li><a href="{{ url_for('admin_escuro') }}">{{ icone("lua") }}Tema escuro</a></li>
+        {% endif %}
+      {% endif %}
+      <li><a href="{{ url_for('autenticacao.logout') }}">{{ icone("sair") }}Sair</a></li>
+    </ul>
+  </div>
+</nav>
+<label for="menu-aberto" class="menu-veu" aria-hidden="true"></label>
+
+<div class="app">
+  <main class="conteudo">
+    {% include "_mensagens.html" %}
+    {% block conteudo %}{% endblock %}
+  </main>
+</div>
+
+<script>
+  // Fecha a gaveta do celular ao escolher um item do menu.
+  document.querySelectorAll(".menu a").forEach(function (link) {
+    link.addEventListener("click", function () {
+      document.getElementById("menu-aberto").checked = false;
+    });
+  });
+</script>
+{% endblock %}
