@@ -6,9 +6,21 @@ Páginas: início, mural de devolutivas, relatórios e boletins, contato.
 import os
 import re
 from datetime import date
+from urllib.error import HTTPError, URLError
+from urllib.parse import quote
+from urllib.request import Request, urlopen
 from uuid import uuid4
 
-from flask import Blueprint, current_app, flash, redirect, render_template, request, url_for
+from flask import (
+    Blueprint,
+    current_app,
+    flash,
+    jsonify,
+    redirect,
+    render_template,
+    request,
+    url_for,
+)
 from flask_login import current_user
 from werkzeug.utils import secure_filename
 
@@ -28,6 +40,8 @@ publico = Blueprint("publico", __name__)
 
 BUCKET = "documentos"
 LIMITE_PDF = 20 * 1024 * 1024  # igual ao file_size_limit do bucket
+# Formato dos caminhos gerados por _novo_caminho: "2026/1a2b3c4d-nome.pdf".
+CAMINHO_PDF = re.compile(r"\d{4}/[0-9a-f]{8}-[A-Za-z0-9._-]+\.pdf")
 
 
 def url_documento(documento: Documento) -> str:
@@ -164,6 +178,58 @@ def relatorios():
     )
 
 
+def _ano_valido(ano: str) -> bool:
+    return ano.isdigit() and 2000 <= int(ano) <= 2100
+
+
+def _novo_caminho(ano: str, nome_arquivo: str) -> str:
+    nome = re.sub(r"\.pdf$", "", secure_filename(nome_arquivo), flags=re.I) or "documento"
+    return f"{ano}/{uuid4().hex[:8]}-{nome}.pdf"
+
+
+def _caminho_enviado_valido(caminho: str, ano: str) -> bool:
+    """Confere um PDF enviado direto ao Storage pelo navegador.
+
+    O caminho precisa ter o formato gerado por _novo_caminho e o arquivo precisa
+    existir e começar com a assinatura %PDF (RN04). Lê só os primeiros bytes.
+    """
+    if not CAMINHO_PDF.fullmatch(caminho) or not caminho.startswith(f"{ano}/"):
+        return False
+    if Documento.query.filter_by(storage_path=caminho).first():
+        return False
+    base = current_app.config["SUPABASE_URL"].rstrip("/")
+    pedido = Request(
+        f"{base}/storage/v1/object/public/{BUCKET}/{quote(caminho)}",
+        headers={"Range": "bytes=0-3"},
+    )
+    try:
+        with urlopen(pedido, timeout=10) as resposta:  # noqa: S310 - URL do próprio Supabase
+            return resposta.read(4) == b"%PDF"
+    except (HTTPError, URLError, TimeoutError):
+        return False
+
+
+@publico.route("/relatorios/assinatura", methods=["POST"])
+@exige_perfil("admin")
+def assinar_envio():
+    """Gera uma URL de envio de uso único para o navegador mandar o PDF direto ao Storage.
+
+    Assim o arquivo não passa pelo Flask, e o limite de ~4,5 MB por requisição da
+    Vercel deixa de valer: o limite passa a ser o do bucket (20 MB).
+    """
+    dados = request.get_json(silent=True) or {}
+    nome = str(dados.get("nome", ""))
+    ano = str(dados.get("ano", ""))
+    if not nome.lower().endswith(".pdf"):
+        return jsonify(erro="Envie apenas arquivos PDF."), 400
+    if not _ano_valido(ano):
+        return jsonify(erro="Ano de referência inválido."), 400
+
+    caminho = _novo_caminho(ano, nome)
+    assinatura = cliente_admin().storage.from_(BUCKET).create_signed_upload_url(caminho)
+    return jsonify(url=assinatura["signed_url"], caminho=caminho)
+
+
 @publico.route("/relatorios", methods=["POST"])
 @exige_perfil("admin")
 def enviar_documento():
@@ -171,34 +237,44 @@ def enviar_documento():
     descricao = request.form.get("descricao", "").strip() or None
     categoria = request.form.get("categoria", "")
     ano = request.form.get("ano_referencia", "")
+    # Com JavaScript, o PDF já foi para o Storage e chega só o caminho;
+    # sem JavaScript, o arquivo vem no formulário (limitado a ~4,5 MB na Vercel).
+    caminho_enviado = request.form.get("storage_path", "").strip()
     arquivo = request.files.get("arquivo")
+    tem_arquivo = bool(caminho_enviado or (arquivo and arquivo.filename))
 
     erro = None
-    if not titulo or not ano or not arquivo or not arquivo.filename:
+    if not titulo or not ano or not tem_arquivo:
         erro = "Preencha o título, o ano e escolha o arquivo PDF."
     elif categoria not in CATEGORIAS_DOCUMENTO:
         erro = "Categoria inválida."
-    elif not ano.isdigit() or not 2000 <= int(ano) <= 2100:
+    elif not _ano_valido(ano):
         erro = "Ano de referência inválido."
     if erro:
         flash(erro, "danger")
         return redirect(url_for("publico.relatorios"))
 
-    conteudo = arquivo.read()
-    # RN04: confere a extensão e a assinatura do arquivo, não só o nome.
-    if not arquivo.filename.lower().endswith(".pdf") or not conteudo.startswith(b"%PDF"):
-        flash("Envie apenas arquivos PDF.", "danger")
-        return redirect(url_for("publico.relatorios"))
-    if len(conteudo) > LIMITE_PDF:
-        flash("O PDF passa do limite de 20 MB.", "danger")
-        return redirect(url_for("publico.relatorios"))
+    armazenamento = cliente_admin().storage.from_(BUCKET)
+    if caminho_enviado:
+        if not _caminho_enviado_valido(caminho_enviado, ano):
+            ja_cadastrado = Documento.query.filter_by(storage_path=caminho_enviado).first()
+            if CAMINHO_PDF.fullmatch(caminho_enviado) and not ja_cadastrado:
+                armazenamento.remove([caminho_enviado])  # descarta o arquivo inválido
+            flash("Envie apenas arquivos PDF.", "danger")
+            return redirect(url_for("publico.relatorios"))
+        caminho = caminho_enviado
+    else:
+        conteudo = arquivo.read()
+        # RN04: confere a extensão e a assinatura do arquivo, não só o nome.
+        if not arquivo.filename.lower().endswith(".pdf") or not conteudo.startswith(b"%PDF"):
+            flash("Envie apenas arquivos PDF.", "danger")
+            return redirect(url_for("publico.relatorios"))
+        if len(conteudo) > LIMITE_PDF:
+            flash("O PDF passa do limite de 20 MB.", "danger")
+            return redirect(url_for("publico.relatorios"))
+        caminho = _novo_caminho(ano, arquivo.filename)
+        armazenamento.upload(caminho, conteudo, {"content-type": "application/pdf"})
 
-    nome = re.sub(r"\.pdf$", "", secure_filename(arquivo.filename), flags=re.I) or "documento"
-    caminho = f"{ano}/{uuid4().hex[:8]}-{nome}.pdf"
-
-    cliente_admin().storage.from_(BUCKET).upload(
-        caminho, conteudo, {"content-type": "application/pdf"}
-    )
     db.session.add(
         Documento(
             titulo=titulo,

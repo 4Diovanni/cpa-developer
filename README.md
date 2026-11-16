@@ -253,9 +253,11 @@ Admin e Avaliador MEC veem todos os dashboards **por regra na policy** (RN03), s
 
 - **Sem escalada de privilégio no cadastro**: o perfil nunca vem dos dados enviados pelo cliente. Todo novo usuário é `aluno`; só um admin promove.
 - **Sem auto-promoção**: não existe policy que permita ao usuário editar a própria linha em `usuarios`.
-- **Usuário inativo** perde todas as permissões.
+- **Usuário inativo** perde todas as permissões e a sessão aberta (é desconectado na próxima página).
+- **Proteção CSRF**: todo formulário `POST` leva um token (Flask-WTF); envios sem token, vindos de outro site, são recusados.
+- **Cookie de sessão** `HttpOnly`, `SameSite=Lax` e, em produção, só por HTTPS.
 - **`url_embed` restrita** aos domínios `lookerstudio.google.com` e `datastudio.google.com`.
-- **Storage**: somente `application/pdf`, até 20 MB (RN04).
+- **Storage**: somente `application/pdf`, até 20 MB (RN04). O navegador envia o PDF direto ao Storage com uma URL de uso único gerada pelo Flask (só para admin), sem passar pelo limite de ~4,5 MB da Vercel. O Flask confere a assinatura `%PDF` antes de cadastrar e apaga o arquivo se não for PDF.
 - **Funções `security definer`** com `search_path = ''`.
 - **Segredos fora do Git**: `.env` está no `.gitignore`. A `SUPABASE_SECRET_KEY` só existe no servidor.
 

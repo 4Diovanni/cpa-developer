@@ -17,6 +17,7 @@
 
 <section class="cartao cartao-estreito">
   <form class="form" method="POST">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     {{ campos_dashboard(dashboard, perfis_vinculaveis) }}
     <div class="acoes">
       <button type="submit" class="botao">Salvar alterações</button>

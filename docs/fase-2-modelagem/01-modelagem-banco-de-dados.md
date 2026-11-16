@@ -135,7 +135,7 @@ erDiagram
 
 > O bucket `documentos` é público para leitura e só aceita `application/pdf` com até 20 MB (RN04).
 >
-> **Atenção na hospedagem:** na Vercel, cada requisição aceita no máximo cerca de **4,5 MB**. Até que o envio direto ao Storage seja implementado, PDFs maiores que isso devem ser enviados pelo painel do Supabase ou com o portal rodando localmente.
+> **Envio na hospedagem:** a Vercel aceita no máximo cerca de **4,5 MB** por requisição. Por isso o navegador do admin envia o PDF **direto ao Storage**, com uma URL de uso único gerada pelo Flask, e o limite efetivo passa a ser o do bucket (20 MB).
 
 ### Tabelas 7 e 8: `avaliacoes` e `participacoes` (ciclos avaliativos)
 

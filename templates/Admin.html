@@ -32,6 +32,7 @@
     <p>A conta é criada no Supabase Auth já confirmada.</p>
   </div>
   <form class="form" method="POST" action="{{ url_for(rota) }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <div class="form-linha">
       <div class="campo">
         <label for="nome">Nome completo</label>
@@ -102,11 +103,13 @@
             <div class="acoes">
               <a class="botao botao-sec botao-sm" href="{{ url_for('editar_usuario', usuario_id=usuario.id, tema=tema) }}">Editar</a>
               <form method="POST" action="{{ url_for('alternar_usuario', usuario_id=usuario.id) }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <input type="hidden" name="tema" value="{{ tema }}">
                 <button type="submit" class="botao botao-sec botao-sm">{{ "Desativar" if usuario.ativo else "Ativar" }}</button>
               </form>
               <form method="POST" action="{{ url_for('excluir_usuario', usuario_id=usuario.id) }}"
                     onsubmit="return confirm('Tem certeza de que deseja excluir este usuário?');">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <input type="hidden" name="tema" value="{{ tema }}">
                 <button type="submit" class="botao botao-perigo botao-sm">Excluir</button>
               </form>

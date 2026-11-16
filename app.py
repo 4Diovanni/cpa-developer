@@ -1,8 +1,10 @@
 from datetime import date
+from urllib.parse import urlparse
 from uuid import UUID
 
 from flask import Flask, flash, redirect, render_template, request, url_for
 from flask_login import LoginManager, current_user, login_required
+from flask_wtf.csrf import CSRFError, CSRFProtect
 from sqlalchemy import text
 
 from config import Config
@@ -17,6 +19,8 @@ app = Flask(__name__)
 app.config.from_object(Config)
 
 db.init_app(app)
+# Todo POST precisa do token CSRF (campo csrf_token nos formulários ou cabeçalho X-CSRFToken).
+csrf = CSRFProtect(app)
 
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -28,9 +32,11 @@ login_manager.login_message_category = "info"
 @login_manager.user_loader
 def carregar_usuario(usuario_id):
     try:
-        return db.session.get(Usuario, UUID(usuario_id))
+        usuario = db.session.get(Usuario, UUID(usuario_id))
     except ValueError:
         return None
+    # Conta desativada pelo admin perde a sessão na próxima requisição.
+    return usuario if usuario and usuario.ativo else None
 
 
 app.register_blueprint(autenticacao)
@@ -56,6 +62,16 @@ def nao_encontrado(_erro):
         titulo="Página não encontrada",
         mensagem="O endereço não existe ou o conteúdo foi removido.",
     ), 404
+
+
+@app.errorhandler(CSRFError)
+def token_invalido(_erro):
+    flash("A página expirou ou o envio não veio do portal. Tente novamente.", "danger")
+    origem = request.referrer or ""
+    # Só volta para a página anterior se ela for do próprio portal (evita redirecionamento aberto).
+    if urlparse(origem).netloc != request.host:
+        origem = url_for("publico.inicio")
+    return redirect(origem)
 
 
 @app.errorhandler(413)
@@ -110,8 +126,12 @@ def _ler_periodo():
         flash("Preencha todos os campos.", "danger")
         return None
 
-    data_inicio = date.fromisoformat(inicio)
-    data_fim = date.fromisoformat(fim)
+    try:
+        data_inicio = date.fromisoformat(inicio)
+        data_fim = date.fromisoformat(fim)
+    except ValueError:
+        flash("Datas inválidas.", "danger")
+        return None
 
     if data_fim < data_inicio:
         flash("A data de encerramento não pode ser anterior à data de início.", "danger")

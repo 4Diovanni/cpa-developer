@@ -17,6 +17,7 @@
 <details class="cartao painel-admin">
   <summary><h2>Enviar documento</h2><span class="selo selo-agendada">Admin</span></summary>
   <form class="form" method="POST" action="{{ url_for('publico.enviar_documento') }}" enctype="multipart/form-data">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <div class="campo">
       <label for="titulo">Título</label>
       <input type="text" id="titulo" name="titulo" placeholder="Ex.: Relatório de Autoavaliação Institucional 2026" required>
@@ -42,9 +43,73 @@
       <input type="file" id="arquivo" name="arquivo" accept="application/pdf,.pdf" required>
       <small>Somente PDF, até 20 MB.</small>
     </div>
+    <input type="hidden" name="storage_path" value="">
+    <p class="texto-suave" id="envio-status" role="status" aria-live="polite"></p>
     <div class="acoes"><button type="submit" class="botao">Publicar documento</button></div>
   </form>
 </details>
+<script>
+  // Envia o PDF direto ao Supabase Storage (URL de uso único gerada pelo Flask),
+  // sem passar pela Vercel, que limita cada requisição a ~4,5 MB.
+  (function () {
+    const form = document.querySelector('form[action="{{ url_for('publico.enviar_documento') }}"]');
+    if (!form || !window.fetch) return;
+    const entrada = form.querySelector('#arquivo');
+    const botao = form.querySelector('button[type="submit"]');
+    const status = document.getElementById('envio-status');
+    const LIMITE = 20 * 1024 * 1024;
+
+    form.addEventListener('submit', async function (evento) {
+      const arquivo = entrada.files[0];
+      if (!arquivo || form.dataset.enviado) return;
+      evento.preventDefault();
+
+      if (arquivo.size > LIMITE) { status.textContent = 'O PDF passa do limite de 20 MB.'; return; }
+      const cabecalho = new Uint8Array(await arquivo.slice(0, 4).arrayBuffer());
+      if (String.fromCharCode.apply(null, cabecalho) !== '%PDF') {
+        status.textContent = 'Envie apenas arquivos PDF.';
+        return;
+      }
+
+      botao.disabled = true;
+      status.textContent = 'Enviando o arquivo…';
+      try {
+        const resposta = await fetch('{{ url_for('publico.assinar_envio') }}', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token() }}' },
+          body: JSON.stringify({ nome: arquivo.name, ano: form.ano_referencia.value })
+        });
+        const dados = await resposta.json().catch(function () { return {}; });
+        if (!resposta.ok) throw new Error(dados.erro || 'Não foi possível preparar o envio.');
+
+        const envio = await fetch(dados.url, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/pdf', 'x-upsert': 'false' },
+          body: arquivo
+        });
+        if (!envio.ok) throw new Error('Falha ao enviar o arquivo. Tente novamente.');
+
+        form.storage_path.value = dados.caminho;
+        entrada.disabled = true; // o arquivo já está no Storage; não reenviar pelo formulário
+        form.dataset.enviado = '1';
+        status.textContent = 'Arquivo enviado. Publicando…';
+        form.submit();
+      } catch (erro) {
+        // Plano B: arquivos pequenos ainda cabem no envio tradicional pelo Flask.
+        if (arquivo.size <= 4 * 1024 * 1024) {
+          form.storage_path.value = '';
+          entrada.disabled = false;
+          form.dataset.enviado = '1';
+          status.textContent = 'Enviando pelo método alternativo…';
+          form.submit();
+          return;
+        }
+        status.textContent = erro.message;
+        botao.disabled = false;
+      }
+    });
+  })();
+</script>
 {% endif %}
 
 <section class="cartao">
@@ -87,6 +152,7 @@
         {% if admin %}
         <form method="POST" action="{{ url_for('publico.excluir_documento', documento_id=doc.id) }}"
               onsubmit="return confirm('Remover este documento? O arquivo também será apagado.');">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <button type="submit" class="botao botao-perigo botao-sm">Excluir</button>
         </form>
         {% endif %}
