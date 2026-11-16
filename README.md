@@ -6,7 +6,7 @@ Portal web da **Comissão Própria de Avaliação (CPA)** da Faculdade Impacta. 
 - **Dashboards analíticos restritos**: painéis do Looker Studio (antigo Google Data Studio), exibidos por `<iframe>` conforme o perfil do usuário autenticado.
 - **Painel administrativo**: a CPA gerencia dashboards, devolutivas, documentos e usuários sem alterar o código.
 
-> **Status:** Fase 1 (requisitos) concluída. O banco de dados (Fase 2) está implementado em `supabase/`. A aplicação Flask e o front-end são os próximos passos.
+> **Status:** Fase 1 (requisitos) concluída. Banco de dados implementado em `supabase/`. Aplicação Flask conectada ao Supabase, com login pelo Supabase Auth e áreas por perfil (Fase 3 em andamento).
 
 ---
 
@@ -83,7 +83,7 @@ O **Visitante** não é um perfil cadastrado: é o usuário sem login (papel `an
 | Autenticação | **Supabase Auth** | Login por e-mail e senha, hash bcrypt, emissão de JWT |
 | Arquivos | **Supabase Storage** | Bucket `documentos`, somente PDF |
 | Dashboards | **Looker Studio** | Painéis incorporados por `<iframe>` |
-| Bibliotecas Python | `supabase`, `python-dotenv`, `PyJWT` | Cliente da API, leitura do `.env`, validação de token |
+| Bibliotecas Python | `Flask-Login`, `Flask-SQLAlchemy`, `psycopg`, `supabase`, `python-dotenv` | Sessão, acesso ao banco, driver PostgreSQL, Auth do Supabase, leitura do `.env` |
 | Versionamento | **Git + GitHub** | Código, migrations e documentação (RNF05) |
 
 ### Por que Supabase em vez de MySQL
@@ -108,32 +108,33 @@ Os requisitos funcionais continuam valendo integralmente. Recomenda-se registrar
 Navegador (HTML/CSS/JS)
         │  HTTP
         ▼
-Flask (Python) ─────────────────────────────┐
-  • rotas públicas e protegidas             │
-  • sessão com o JWT do usuário             │
-  • decide menus e páginas pelo perfil      │
-        │                                    │
-        │ supabase-py                        │ <iframe>
-        ▼                                    ▼
-Supabase                              Looker Studio
-  • Auth (login, JWT)
-  • PostgreSQL + RLS
-  • Storage (PDFs)
+Flask (Python) ──────────────────────────────────┐
+  • Flask-Login: sessão e @exige_perfil          │
+  • rotas por perfil (aluno, coordenador, ...)   │
+        │                    │                    │ <iframe>
+        │ supabase-py        │ SQLAlchemy         ▼
+        ▼                    ▼               Looker Studio
+Supabase Auth          PostgreSQL (pooler)
+  (login, contas)        + RLS + Storage
 ```
 
 **Fluxo de login:**
 
 1. O usuário envia e-mail e senha para o Flask.
-2. O Flask chama o Supabase Auth, que devolve um JWT.
-3. O Flask valida o token pela `SUPABASE_JWKS_URL` e guarda a sessão.
-4. As consultas são feitas **com o token do usuário**, então a RLS do banco filtra os dados automaticamente.
+2. O Flask valida as credenciais no **Supabase Auth** (`sign_in_with_password`); a senha nunca é gravada nas tabelas do portal.
+3. Com o `id` devolvido, o Flask carrega o usuário em `public.usuarios`, confere se está ativo e abre a sessão (Flask-Login).
+4. Cada rota checa o perfil com o decorator `@exige_perfil`; sem permissão, a resposta é `403`.
 
-**Duas chaves, dois usos:**
+**Quem protege o quê:**
 
-- `SUPABASE_PUBLISHABLE_KEY` — chave pública. Usada nas consultas normais, sempre junto do token do usuário, respeitando a RLS.
-- `SUPABASE_SECRET_KEY` — chave secreta, **ignora a RLS**. Fica só no servidor, para tarefas administrativas pontuais. Nunca vai para o navegador.
+| Acesso | Proteção |
+|---|---|
+| Páginas do Flask | `@exige_perfil` + `@login_required` (o Flask acessa o banco via SQLAlchemy com usuário de serviço) |
+| API do Supabase (chave pública) | **RLS** no banco, testada em `supabase/tests/` |
+| Contas (criar, editar, excluir) | Supabase Auth Admin, com a `SUPABASE_SECRET_KEY`, só no servidor |
 
-Assim há **defesa em dupla camada**: mesmo que uma rota do Flask esqueça de checar o perfil, o banco recusa o acesso.
+- `SUPABASE_PUBLISHABLE_KEY` — chave pública, usada no login. Respeita a RLS.
+- `SUPABASE_SECRET_KEY` — chave secreta, **ignora a RLS**. Só no servidor, para gerenciar contas. Nunca vai para o navegador.
 
 ---
 
@@ -143,9 +144,25 @@ Assim há **defesa em dupla camada**: mesmo que uma rota do Flask esqueça de ch
 cpa-developer/
 ├── README.md
 ├── LICENSE
+├── SECURITY.md
 ├── .env.example            # modelo das variáveis de ambiente
 ├── .env                    # valores reais (NÃO versionado)
 ├── .gitignore
+├── pyproject.toml          # metadados e regras do ruff
+├── requirements.txt        # dependências Python
+├── app.py                  # aplicação Flask: rotas por perfil e /saude
+├── config.py               # configuração lida do .env (URL do banco, chaves)
+├── models.py               # models SQLAlchemy mapeados às tabelas do Supabase
+├── supabase_client.py      # clientes Supabase (público e admin)
+├── routes/
+│   └── autenticacao.py     # login/logout via Supabase Auth
+├── templates/              # páginas HTML (Jinja2)
+├── scripts/
+│   └── criar_usuarios_teste.py
+├── .github/
+│   ├── workflows/          # pr-checks.yml, codeql.yml
+│   ├── dependabot.yml
+│   └── pull_request_template.md
 ├── docs/
 │   ├── README.md                 # índice da documentação
 │   ├── plano-do-projeto.md       # 6 fases, 24 tarefas, progresso
@@ -156,25 +173,14 @@ cpa-developer/
 │       ├── 03-catalogo-dashboards-documentos.md
 │       └── 04-requisitos.md
 └── supabase/
+    ├── config.toml
     ├── migrations/
-    │   └── 20261116000000_schema_inicial.sql
+    │   ├── 20261116000000_schema_inicial.sql
+    │   ├── 20261116100000_corrige_leitura_dashboard_perfis.sql
+    │   └── 20261117000000_avaliacoes_participacoes.sql
+    ├── tests/
+    │   └── rls_test.sql    # testes pgTAP das regras de acesso
     └── seed.sql
-```
-
-Estrutura planejada para a aplicação Flask (Fase 3):
-
-```
-app/
-├── __init__.py          # create_app(), carrega o .env
-├── supabase_client.py   # clientes Supabase (público e admin)
-├── auth.py              # login, logout, decorators @login_required / @perfil_required
-├── routes/
-│   ├── publico.py       # home, devolutivas, relatórios, contato
-│   ├── dashboards.py    # área logada
-│   └── admin.py         # painel administrativo
-├── templates/           # Jinja2 (HTML)
-└── static/              # CSS, JS, imagens
-requirements.txt
 ```
 
 ---
@@ -244,7 +250,7 @@ Admin e Avaliador MEC veem todos os dashboards **por regra na policy** (RN03), s
 
 ### Pré-requisitos
 
-- Python 3.11+
+- Python 3.12+
 - [Supabase CLI](https://supabase.com/docs/guides/cli) (para aplicar migrations)
 - Acesso ao projeto Supabase
 
@@ -260,9 +266,12 @@ cp .env.example .env
 | `SUPABASE_URL` | Endereço da API |
 | `SUPABASE_PUBLISHABLE_KEY` | Chave pública (respeita RLS) |
 | `SUPABASE_SECRET_KEY` | Chave secreta, só no backend |
-| `SUPABASE_JWKS_URL` | Validação dos tokens no Flask |
-| `SUPABASE_DB_HOST` / `PORT` / `NAME` / `USER` / `PASSWORD` | Conexão direta ao PostgreSQL |
+| `SUPABASE_JWKS_URL` | Reservada para validar tokens JWT do Supabase |
+| `SUPABASE_DB_HOST` / `PORT` / `NAME` / `USER` / `PASSWORD` | Conexão do Flask ao PostgreSQL (use o **pooler**, que funciona em IPv4) |
+| `DATABASE_URL` | Opcional: URL completa do banco; substitui as `SUPABASE_DB_*` |
 | `FLASK_SECRET_KEY` | Assinatura da sessão do Flask |
+
+> O host direto `db.<ref>.supabase.co` só tem IPv6. Em redes sem IPv6, use o pooler (Dashboard › **Connect**): host `aws-1-<regiao>.pooler.supabase.com`, usuário `postgres.<ref>`, porta `5432` (local) ou `6543` (serverless).
 
 Detalhes da conexão e o que fazer se uma chave vazar: [docs/setup-supabase.md](docs/setup-supabase.md).
 
@@ -271,23 +280,14 @@ Detalhes da conexão e o que fazer se uma chave vazar: [docs/setup-supabase.md](
 ```bash
 supabase login
 supabase link --project-ref <project-ref>
-supabase db push
+supabase db push --include-seed   # migrations + dashboards de demonstração
+supabase migration list --remote  # confere o que foi aplicado
 ```
 
-Depois rode `supabase/seed.sql` no **SQL Editor** para criar os dashboards de demonstração.
+> Se aplicar uma migration pelo SQL Editor, registre-a depois com
+> `supabase migration repair --status applied <versao> --remote`; sem isso, o deploy automático tenta aplicá-la de novo.
 
-### 3. Criar o primeiro administrador
-
-1. Dashboard › **Authentication › Users** › crie um usuário.
-2. No **SQL Editor**:
-
-```sql
-update public.usuarios
-set perfil_id = (select id from public.perfis where codigo = 'admin')
-where email = 'admin@exemplo.com';
-```
-
-### 4. Rodar o Flask (quando a aplicação existir)
+### 3. Rodar o Flask
 
 ```bash
 python -m venv .venv
@@ -295,6 +295,23 @@ python -m venv .venv
 pip install -r requirements.txt
 flask run
 ```
+
+Acesse `http://127.0.0.1:5000/saude`. A resposta `{"banco": "ok"}` confirma a conexão com o Supabase.
+
+### 4. Usuários de teste
+
+```bash
+python -m scripts.criar_usuarios_teste
+```
+
+| Perfil | E-mail | Senha |
+|---|---|---|
+| Aluno | `aluno@portal.com` | `Aluno@123` |
+| Coordenador | `coordenador@portal.com` | `Coord@123` |
+| Avaliador MEC | `avaliador@portal.com` | `Avaliador@123` |
+| Admin | `admin@portal.com` | `Admin@123` |
+
+> Senhas apenas para desenvolvimento. Troque-as ou remova essas contas antes de colocar o portal em produção. Novos usuários são criados pelo admin em `/admin`.
 
 ### Checklist de permissões
 
@@ -312,8 +329,8 @@ flask run
 
 | ID | Resumo | Situação |
 |---|---|---|
-| RF01 | Login com e-mail institucional e senha | Auth pronto; falta tela e rota Flask |
-| RF02 | Controle de acesso por perfil (menus e URL direta) | RLS pronta; faltam decorators Flask |
+| RF01 | Login com e-mail institucional e senha | ✅ Flask + Supabase Auth |
+| RF02 | Controle de acesso por perfil (menus e URL direta) | ✅ `@exige_perfil` no Flask e RLS no banco |
 | RF03 | Dashboards por perfil via iframe | Dados e RLS prontos; falta página |
 | RF04 | Admin gerencia URLs dos dashboards | Permissão pronta; falta interface |
 | RF05 | Mural público de devolutivas | Tabela e RLS prontas; falta página |
@@ -350,19 +367,18 @@ Conforme o [Plano do projeto](docs/plano-do-projeto.md). Requisitos completos em
 |---|---|---|
 | 1 | Levantamento de requisitos | ✅ Concluída |
 | 2 | Modelagem e design | 🟡 Banco pronto; faltam protótipos, navegação e validação com a CPA |
-| 3 | Portal: ambiente, login, controle de acesso, dashboards, home | ⏳ A fazer |
+| 3 | Portal: ambiente, login, controle de acesso, dashboards, home | 🟡 Login, perfis e conexão prontos; faltam dashboards e home |
 | 4 | Mural, relatórios, contato, acessibilidade | ⏳ A fazer |
 | 5 | Testes funcionais, de usabilidade e de segurança | ⏳ A fazer |
 | 6 | Deploy, manual do usuário e treinamento | ⏳ A fazer |
 
 ### Próximos passos
 
-1. Aplicar a migration e o seed no projeto Supabase.
-2. Criar o esqueleto Flask (`app/`, `requirements.txt`) com leitura do `.env`.
-3. Páginas públicas: Home, Mural, Relatórios e Contato.
-4. Login, sessão e área logada com dashboards por perfil.
-5. Painel administrativo: dashboards, devolutivas, upload de PDF e usuários.
-6. Testes por perfil e troca dos links de demonstração pelos oficiais.
+1. Página de dashboards por perfil (iframes do Looker Studio).
+2. Páginas públicas: Home, Mural de Devolutivas, Relatórios e Contato.
+3. Painel administrativo: links dos dashboards, devolutivas e upload de PDF.
+4. Testes automatizados das rotas Flask (`tests/`).
+5. Deploy (Vercel) e troca dos links de demonstração pelos oficiais.
 
 ---
 
