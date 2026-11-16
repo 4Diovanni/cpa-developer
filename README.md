@@ -110,7 +110,7 @@ Navegador (HTML/CSS/JS)
         ▼
 Flask (Python) ──────────────────────────────────┐
   • Flask-Login: sessão e @exige_perfil          │
-  • rotas por perfil (aluno, coordenador, ...)   │
+  • área pública + área restrita por perfil      │
         │                    │                    │ <iframe>
         │ supabase-py        │ SQLAlchemy         ▼
         ▼                    ▼               Looker Studio
@@ -122,14 +122,25 @@ Supabase Auth          PostgreSQL (pooler)
 
 1. O usuário envia e-mail e senha para o Flask.
 2. O Flask valida as credenciais no **Supabase Auth** (`sign_in_with_password`); a senha nunca é gravada nas tabelas do portal.
-3. Com o `id` devolvido, o Flask carrega o usuário em `public.usuarios`, confere se está ativo e abre a sessão (Flask-Login).
-4. Cada rota checa o perfil com o decorator `@exige_perfil`; sem permissão, a resposta é `403`.
+3. Com o `id` devolvido, o Flask carrega o usuário em `public.usuarios`, confere se está ativo, abre a sessão (Flask-Login) e leva o usuário para `/dashboards`.
+4. Cada rota restrita checa o perfil com o decorator `@exige_perfil` (`permissoes.py`). O admin tem acesso total; os demais perfis sem permissão recebem a página `403`. Visitante sem login é levado ao `/login`.
+
+**Páginas e rotas:**
+
+| Área | Rota | Quem acessa |
+|---|---|---|
+| Pública | `/` início, `/devolutivas`, `/relatorios`, `/contato`, `/login` | Todos, sem login (RN01) |
+| Restrita | `/dashboards` | Logados; cada perfil vê só os painéis liberados |
+| Restrita | `/aluno/avaliacoes` | Aluno |
+| Restrita | `/coordenador` | Coordenador e admin |
+| Restrita | `/admin` (usuários) | Admin |
+| Gestão (admin) | Formulários nas próprias páginas de dashboards, devolutivas e relatórios | Admin |
 
 **Quem protege o quê:**
 
 | Acesso | Proteção |
 |---|---|
-| Páginas do Flask | `@exige_perfil` + `@login_required` (o Flask acessa o banco via SQLAlchemy com usuário de serviço) |
+| Páginas do Flask | `@exige_perfil` + `@login_required`. O Flask acessa o banco via SQLAlchemy com usuário de serviço (que ignora a RLS), então a regra de visibilidade dos dashboards é repetida em `Dashboard.visiveis_para()` |
 | API do Supabase (chave pública) | **RLS** no banco, testada em `supabase/tests/` |
 | Contas (criar, editar, excluir) | Supabase Auth Admin, com a `SUPABASE_SECRET_KEY`, só no servidor |
 
@@ -150,13 +161,17 @@ cpa-developer/
 ├── .gitignore
 ├── pyproject.toml          # metadados e regras do ruff
 ├── requirements.txt        # dependências Python
-├── app.py                  # aplicação Flask: rotas por perfil e /saude
+├── app.py                  # aplicação Flask: áreas do aluno, coordenador e admin; /saude
 ├── config.py               # configuração lida do .env (URL do banco, chaves)
 ├── models.py               # models SQLAlchemy mapeados às tabelas do Supabase
+├── permissoes.py           # @exige_perfil (controle de acesso por perfil)
 ├── supabase_client.py      # clientes Supabase (público e admin)
 ├── routes/
-│   └── autenticacao.py     # login/logout via Supabase Auth
-├── templates/              # páginas HTML (Jinja2)
+│   ├── autenticacao.py     # login/logout via Supabase Auth
+│   ├── publico.py          # início, mural, relatórios (upload PDF) e contato
+│   └── dashboards.py       # dashboards por perfil e gestão dos links
+├── templates/              # páginas HTML (Jinja2) sobre o layout comum (_layout.html)
+├── static/css/base.css     # design system: cores, tipografia e componentes
 ├── scripts/
 │   └── criar_usuarios_teste.py
 ├── .github/
@@ -270,6 +285,7 @@ cp .env.example .env
 | `SUPABASE_DB_HOST` / `PORT` / `NAME` / `USER` / `PASSWORD` | Conexão do Flask ao PostgreSQL (use o **pooler**, que funciona em IPv4) |
 | `DATABASE_URL` | Opcional: URL completa do banco; substitui as `SUPABASE_DB_*` |
 | `FLASK_SECRET_KEY` | Assinatura da sessão do Flask |
+| `CPA_LINK_CHAT` / `CPA_LINK_MEET` / `CPA_EMAIL` | Opcionais: links da página de contato (sem eles, o portal usa os endereços gerais do Google e `cpa@faculdadeimpacta.edu.br`) |
 
 > O host direto `db.<ref>.supabase.co` só tem IPv6. Em redes sem IPv6, use o pooler (Dashboard › **Connect**): host `aws-1-<regiao>.pooler.supabase.com`, usuário `postgres.<ref>`, porta `5432` (local) ou `6543` (serverless).
 
@@ -332,23 +348,23 @@ python -m scripts.criar_usuarios_teste --redefinir # também troca a senha das e
 |---|---|---|
 | RF01 | Login com e-mail institucional e senha | ✅ Flask + Supabase Auth |
 | RF02 | Controle de acesso por perfil (menus e URL direta) | ✅ `@exige_perfil` no Flask e RLS no banco |
-| RF03 | Dashboards por perfil via iframe | Dados e RLS prontos; falta página |
-| RF04 | Admin gerencia URLs dos dashboards | Permissão pronta; falta interface |
-| RF05 | Mural público de devolutivas | Tabela e RLS prontas; falta página |
-| RF06 | Admin gerencia devolutivas | Permissão pronta; falta interface |
-| RF07 | Lista pública de relatórios/boletins | Tabela, Storage e RLS prontos; falta página |
-| RF08 | Admin faz upload de PDF | Permissão pronta; falta interface |
-| RF09 | Página de contato (Google Chat e Meet) | Pendente |
+| RF03 | Dashboards por perfil via iframe | ✅ `/dashboards`, filtrado por perfil |
+| RF04 | Admin gerencia URLs dos dashboards | ✅ Cadastro, edição, ativação e perfis em `/dashboards` |
+| RF05 | Mural público de devolutivas | ✅ `/devolutivas`, com filtro por status |
+| RF06 | Admin gerencia devolutivas | ✅ Publicar, editar e excluir no próprio mural |
+| RF07 | Lista pública de relatórios/boletins | ✅ `/relatorios`, com filtro por categoria e ano |
+| RF08 | Admin faz upload de PDF | ✅ Upload para o Supabase Storage (só PDF, até 20 MB) |
+| RF09 | Página de contato (Google Chat e Meet) | ✅ `/contato` (links configuráveis no `.env`) |
 
 ### Não funcionais
 
 | ID | Requisito | Situação |
 |---|---|---|
-| RNF01 | Responsividade | Pendente (front) |
+| RNF01 | Responsividade | ✅ Layout único; menu vira gaveta no celular e os iframes se ajustam à tela |
 | RNF02 | Senhas com hash e consultas parametrizadas | Atendido por Supabase Auth e API |
-| RNF03 | Usabilidade, contraste, seções públicas em até 2 cliques | Pendente (front) |
-| RNF04 | Chrome, Firefox, Edge e Safari | Pendente (front) |
-| RNF05 | Versionamento no GitHub | Em andamento |
+| RNF03 | Usabilidade, contraste, seções públicas em até 2 cliques | ✅ Seções públicas a 1 clique pelo menu; validar contraste nos testes da Fase 5 |
+| RNF04 | Chrome, Firefox, Edge e Safari | Testado no Chrome; demais navegadores na Fase 5 |
+| RNF05 | Versionamento no GitHub | ✅ Repositório público |
 | RNF06 | HTML/CSS/JS + Flask + banco relacional | Atualizado: MySQL → PostgreSQL (Supabase) |
 
 ### Regras de negócio
@@ -367,19 +383,18 @@ Conforme o [Plano do projeto](docs/plano-do-projeto.md). Requisitos completos em
 | Fase | Foco | Situação |
 |---|---|---|
 | 1 | Levantamento de requisitos | ✅ Concluída |
-| 2 | Modelagem e design | 🟡 Banco pronto; faltam protótipos, navegação e validação com a CPA |
-| 3 | Portal: ambiente, login, controle de acesso, dashboards, home | 🟡 Login, perfis e conexão prontos; faltam dashboards e home |
-| 4 | Mural, relatórios, contato, acessibilidade | ⏳ A fazer |
+| 2 | Modelagem e design | ✅ Banco, protótipos, navegação e ajustes da validação documentados |
+| 3 | Portal: ambiente, login, controle de acesso, dashboards, home | ✅ Concluída |
+| 4 | Mural, relatórios, contato, acessibilidade | 🟡 Mural, relatórios e contato prontos; falta revisão de acessibilidade |
 | 5 | Testes funcionais, de usabilidade e de segurança | ⏳ A fazer |
-| 6 | Deploy, manual do usuário e treinamento | ⏳ A fazer |
+| 6 | Deploy, manual do usuário e treinamento | 🟡 Deploy na Vercel; faltam manual e treinamento |
 
 ### Próximos passos
 
-1. Página de dashboards por perfil (iframes do Looker Studio).
-2. Páginas públicas: Home, Mural de Devolutivas, Relatórios e Contato.
-3. Painel administrativo: links dos dashboards, devolutivas e upload de PDF.
-4. Testes automatizados das rotas Flask (`tests/`).
-5. Deploy (Vercel) e troca dos links de demonstração pelos oficiais.
+1. Trocar os links de demonstração dos dashboards pelos oficiais da CPA (pelo próprio portal, em `/dashboards`).
+2. Revisão de acessibilidade (contraste, teclado, leitores de tela).
+3. Testes automatizados das rotas Flask (`tests/`) e testes nos demais navegadores.
+4. Manual do usuário e treinamento da CPA.
 
 ---
 

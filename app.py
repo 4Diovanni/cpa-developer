@@ -1,5 +1,4 @@
 from datetime import date
-from functools import wraps
 from uuid import UUID
 
 from flask import Flask, flash, redirect, render_template, request, url_for
@@ -7,8 +6,11 @@ from flask_login import LoginManager, current_user, login_required
 from sqlalchemy import text
 
 from config import Config
-from models import PERFIS_VALIDOS, Avaliacao, Participacao, Perfil, Usuario, db
+from models import PERFIS_VALIDOS, Avaliacao, Documento, Participacao, Perfil, Usuario, db
+from permissoes import exige_perfil
 from routes.autenticacao import autenticacao
+from routes.dashboards import dashboards
+from routes.publico import publico
 from supabase_client import cliente_admin
 
 app = Flask(__name__)
@@ -19,6 +21,8 @@ db.init_app(app)
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = "autenticacao.login"
+login_manager.login_message = "Faça login para acessar esta página."
+login_manager.login_message_category = "info"
 
 
 @login_manager.user_loader
@@ -30,20 +34,34 @@ def carregar_usuario(usuario_id):
 
 
 app.register_blueprint(autenticacao)
+app.register_blueprint(publico)
+app.register_blueprint(dashboards)
 
 
-def exige_perfil(perfil):
-    def decorador(funcao):
-        @wraps(funcao)
-        @login_required
-        def verificar(*args, **kwargs):
-            if current_user.perfil != perfil:
-                return "Acesso negado: você não tem permissão para esta página.", 403
-            return funcao(*args, **kwargs)
+@app.errorhandler(403)
+def acesso_negado(_erro):
+    return render_template(
+        "erro.html",
+        codigo=403,
+        titulo="Acesso negado",
+        mensagem="Seu perfil não tem permissão para acessar esta página.",
+    ), 403
 
-        return verificar
 
-    return decorador
+@app.errorhandler(404)
+def nao_encontrado(_erro):
+    return render_template(
+        "erro.html",
+        codigo=404,
+        titulo="Página não encontrada",
+        mensagem="O endereço não existe ou o conteúdo foi removido.",
+    ), 404
+
+
+@app.errorhandler(413)
+def arquivo_grande(_erro):
+    flash("O arquivo enviado passa do limite permitido.", "danger")
+    return redirect(url_for("publico.relatorios"))
 
 
 # -----------------------------------------------------------------------------
@@ -58,40 +76,25 @@ def saude():
         return {"app": "ok", "banco": "erro", "detalhe": type(erro).__name__}, 503
 
 
-@app.route("/")
-def inicio():
-    return redirect(url_for("autenticacao.login"))
+# -----------------------------------------------------------------------------
+# Endereços antigos dos protótipos: mantidos para não quebrar links salvos.
+# -----------------------------------------------------------------------------
+@app.route("/modelo1")
+@app.route("/modelo2")
+@app.route("/modelo3")
+@login_required
+def modelos_antigos():
+    return redirect(url_for("dashboards.listar"))
 
 
 # -----------------------------------------------------------------------------
 # Aluno
 # -----------------------------------------------------------------------------
-@app.route("/modelo1")
-@exige_perfil("aluno")
-def modelo1():
-    return redirect(url_for("aluno_avaliacoes"))
-
-
 @app.route("/aluno/avaliacoes")
 @exige_perfil("aluno")
 def aluno_avaliacoes():
     avaliacoes = Avaliacao.query.order_by(Avaliacao.data_inicio.desc()).all()
     return render_template("AlunoAvaliacoes.html", avaliacoes=avaliacoes)
-
-
-@app.route("/modelo2")
-@login_required
-def modelo2():
-    return render_template("Painel.html")
-
-
-# -----------------------------------------------------------------------------
-# Avaliador externo (MEC)
-# -----------------------------------------------------------------------------
-@app.route("/modelo3")
-@exige_perfil("avaliador")
-def modelo3():
-    return render_template("Escuro.html")
 
 
 # -----------------------------------------------------------------------------
@@ -140,6 +143,7 @@ def coordenador():
         total_alunos=total_alunos,
         total_participacoes=total_participacoes,
         percentual_participacao=percentual,
+        total_documentos=Documento.query.count(),
     )
 
 

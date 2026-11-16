@@ -56,6 +56,8 @@ def _url_banco() -> str:
 
 class Config:
     SECRET_KEY = os.environ["FLASK_SECRET_KEY"]
+    # Limite do upload de PDF (o bucket aceita até 20 MB; folga para o formulário).
+    MAX_CONTENT_LENGTH = 21 * 1024 * 1024
 
     SQLALCHEMY_DATABASE_URI = _url_banco()
     SQLALCHEMY_TRACK_MODIFICATIONS = False
