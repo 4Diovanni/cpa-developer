@@ -95,6 +95,15 @@
         status.textContent = 'Arquivo enviado. Publicando…';
         form.submit();
       } catch (erro) {
+        // Plano B: arquivos pequenos ainda cabem no envio tradicional pelo Flask.
+        if (arquivo.size <= 4 * 1024 * 1024) {
+          form.storage_path.value = '';
+          entrada.disabled = false;
+          form.dataset.enviado = '1';
+          status.textContent = 'Enviando pelo método alternativo…';
+          form.submit();
+          return;
+        }
         status.textContent = erro.message;
         botao.disabled = false;
       }
