@@ -59,6 +59,15 @@ class Config:
     # Limite do upload de PDF (o bucket aceita até 20 MB; folga para o formulário).
     MAX_CONTENT_LENGTH = 21 * 1024 * 1024
 
+    # Cookie de sessão: inacessível ao JavaScript, não enviado em requisições de
+    # outros sites e, em produção (a Vercel define VERCEL=1), só por HTTPS.
+    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = "Lax"
+    SESSION_COOKIE_SECURE = bool(os.getenv("VERCEL"))
+
+    # Proteção CSRF (Flask-WTF): o token vale enquanto durar a sessão.
+    WTF_CSRF_TIME_LIMIT = None
+
     SQLALCHEMY_DATABASE_URI = _url_banco()
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ENGINE_OPTIONS = {

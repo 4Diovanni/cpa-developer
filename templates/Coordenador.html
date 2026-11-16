@@ -25,6 +25,7 @@
       <p>Defina o título e o período de respostas.</p>
     </div>
     <form class="form" method="POST" action="{{ url_for('coordenador') }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <div class="campo">
         <label for="titulo">Título da avaliação</label>
         <input type="text" id="titulo" name="titulo" placeholder="Ex.: Avaliação Institucional 2026" required>
@@ -64,6 +65,7 @@
           <a class="botao botao-sec botao-sm" href="{{ url_for('editar_avaliacao', avaliacao_id=avaliacao.id) }}">Editar</a>
           <form method="POST" action="{{ url_for('excluir_avaliacao', avaliacao_id=avaliacao.id) }}"
                 onsubmit="return confirm('Tem certeza de que deseja excluir esta avaliação?');">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <button type="submit" class="botao botao-perigo botao-sm">Excluir</button>
           </form>
         </div>

@@ -17,6 +17,7 @@
 <details class="cartao painel-admin">
   <summary><h2>Publicar devolutiva</h2><span class="selo selo-agendada">Admin</span></summary>
   <form class="form" method="POST" action="{{ url_for('publico.criar_devolutiva') }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     {{ campos_devolutiva(None, status_opcoes, hoje) }}
     <div class="acoes"><button type="submit" class="botao">Publicar no mural</button></div>
   </form>
@@ -45,6 +46,7 @@
         <a class="botao botao-sec botao-sm" href="{{ url_for('publico.editar_devolutiva', devolutiva_id=d.id) }}">Editar</a>
         <form method="POST" action="{{ url_for('publico.excluir_devolutiva', devolutiva_id=d.id) }}"
               onsubmit="return confirm('Remover esta devolutiva do mural?');">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <button type="submit" class="botao botao-perigo botao-sm">Excluir</button>
         </form>
       </div>

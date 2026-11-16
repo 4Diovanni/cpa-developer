@@ -23,6 +23,7 @@
 <details class="cartao painel-admin">
   <summary><h2>Cadastrar dashboard</h2><span class="selo selo-agendada">Admin</span></summary>
   <form class="form" method="POST" action="{{ url_for('dashboards.criar') }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     {{ campos_dashboard(None, perfis_vinculaveis) }}
     <div class="acoes"><button type="submit" class="botao">Cadastrar dashboard</button></div>
   </form>
@@ -44,6 +45,7 @@
         <a class="botao botao-sec botao-sm" href="{{ url_for('dashboards.editar', dashboard_id=d.id) }}">Editar</a>
         <form method="POST" action="{{ url_for('dashboards.excluir', dashboard_id=d.id) }}"
               onsubmit="return confirm('Remover este dashboard do portal?');">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <button type="submit" class="botao botao-perigo botao-sm">Excluir</button>
         </form>
       </div>

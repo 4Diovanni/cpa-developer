@@ -16,6 +16,7 @@
 
 <section class="cartao cartao-estreito">
   <form class="form" method="POST">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <div class="campo">
       <label for="titulo">Título da avaliação</label>
       <input type="text" id="titulo" name="titulo" value="{{ avaliacao.titulo }}" required>

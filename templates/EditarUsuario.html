@@ -18,6 +18,7 @@
 
 <section class="cartao cartao-estreito">
   <form class="form" method="POST">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <input type="hidden" name="tema" value="{{ tema }}">
     <div class="campo">
       <label for="nome">Nome completo</label>
