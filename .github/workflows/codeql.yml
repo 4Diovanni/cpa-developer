@@ -47,7 +47,7 @@ jobs:
       matrix:
         language: [actions, python]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Verificar se há código para a linguagem
         id: has
@@ -61,13 +61,13 @@ jobs:
 
       - name: Inicializar CodeQL
         if: steps.has.outputs.run == 'true'
-        uses: github/codeql-action/init@v3
+        uses: github/codeql-action/init@v4
         with:
           languages: ${{ matrix.language }}
           queries: security-extended
 
       - name: Analisar
         if: steps.has.outputs.run == 'true'
-        uses: github/codeql-action/analyze@v3
+        uses: github/codeql-action/analyze@v4
         with:
           category: /language:${{ matrix.language }}
