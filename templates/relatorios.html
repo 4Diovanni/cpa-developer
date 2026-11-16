@@ -1,0 +1,101 @@
+{% extends "_layout.html" %}
+{% from "_icones.html" import icone %}
+{% set menu_ativo = "relatorios" %}
+{% block titulo %}Relatórios e boletins{% endblock %}
+
+{% block conteudo %}
+{% set admin = current_user.is_authenticated and current_user.perfil == "admin" %}
+<header class="cabecalho">
+  <div>
+    <span class="sobretitulo">Transparência · acesso público</span>
+    <h1>Relatórios e boletins</h1>
+    <p>Documentos oficiais da CPA em PDF, organizados por ano de referência e categoria.</p>
+  </div>
+</header>
+
+{% if admin %}
+<details class="cartao painel-admin">
+  <summary><h2>Enviar documento</h2><span class="selo selo-agendada">Admin</span></summary>
+  <form class="form" method="POST" action="{{ url_for('publico.enviar_documento') }}" enctype="multipart/form-data">
+    <div class="campo">
+      <label for="titulo">Título</label>
+      <input type="text" id="titulo" name="titulo" placeholder="Ex.: Relatório de Autoavaliação Institucional 2026" required>
+    </div>
+    <div class="form-linha">
+      <div class="campo">
+        <label for="categoria">Categoria</label>
+        <select id="categoria" name="categoria" required>
+          {% for valor, rotulo in categorias.items() %}<option value="{{ valor }}">{{ rotulo }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="campo">
+        <label for="ano_referencia">Ano de referência</label>
+        <input type="number" id="ano_referencia" name="ano_referencia" min="2000" max="2100" value="{{ ano_atual }}" required>
+      </div>
+    </div>
+    <div class="campo">
+      <label for="descricao">Descrição <span class="texto-suave">(opcional)</span></label>
+      <input type="text" id="descricao" name="descricao" placeholder="Resumo do conteúdo">
+    </div>
+    <div class="campo">
+      <label for="arquivo">Arquivo PDF</label>
+      <input type="file" id="arquivo" name="arquivo" accept="application/pdf,.pdf" required>
+      <small>Somente PDF, até 20 MB.</small>
+    </div>
+    <div class="acoes"><button type="submit" class="botao">Publicar documento</button></div>
+  </form>
+</details>
+{% endif %}
+
+<section class="cartao">
+  <form class="filtros filtros-2" method="GET" action="{{ url_for('publico.relatorios') }}">
+    <label class="sr-only" for="filtro-categoria">Categoria</label>
+    <select id="filtro-categoria" name="categoria">
+      <option value="">Todas as categorias</option>
+      {% for valor, rotulo in categorias.items() %}
+      <option value="{{ valor }}" {% if categoria_filtro == valor %}selected{% endif %}>{{ rotulo }}</option>
+      {% endfor %}
+    </select>
+    <label class="sr-only" for="filtro-ano">Ano</label>
+    <select id="filtro-ano" name="ano">
+      <option value="">Todos os anos</option>
+      {% for ano in anos %}
+      <option value="{{ ano }}" {% if ano_filtro == ano | string %}selected{% endif %}>{{ ano }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit" class="botao">Filtrar</button>
+    <a class="botao botao-sec" href="{{ url_for('publico.relatorios') }}">Limpar</a>
+  </form>
+
+  {% if documentos %}
+  <ul class="lista">
+    {% for doc in documentos %}
+    <li class="item">
+      <div class="item-doc">
+        <span class="icone-pdf" aria-hidden="true">PDF</span>
+        <div>
+          <h3>{{ doc.titulo }}</h3>
+          <div class="item-meta">
+            <span>{{ doc.categoria_rotulo }}</span>
+            <span>Ano-base <b>{{ doc.ano_referencia }}</b></span>
+          </div>
+          {% if doc.descricao %}<p class="texto-suave">{{ doc.descricao }}</p>{% endif %}
+        </div>
+      </div>
+      <div class="acoes">
+        <a class="botao botao-sm" href="{{ url_documento(doc) }}" target="_blank" rel="noopener">{{ icone("documento") }}Abrir PDF</a>
+        {% if admin %}
+        <form method="POST" action="{{ url_for('publico.excluir_documento', documento_id=doc.id) }}"
+              onsubmit="return confirm('Remover este documento? O arquivo também será apagado.');">
+          <button type="submit" class="botao botao-perigo botao-sm">Excluir</button>
+        </form>
+        {% endif %}
+      </div>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="vazio">Nenhum documento {{ 'com esses filtros' if categoria_filtro or ano_filtro else 'publicado ainda' }}.</p>
+  {% endif %}
+</section>
+{% endblock %}

@@ -1,5 +1,5 @@
 {% extends "_layout.html" %}
-{% set menu_ativo = "inicio" %}
+{% set menu_ativo = "coordenacao" %}
 {% block titulo %}Coordenação{% endblock %}
 
 {% block conteudo %}
@@ -15,7 +15,7 @@
   <div class="kpi"><span>Avaliações</span><b>{{ total_avaliacoes }}</b><small>ciclos cadastrados</small></div>
   <div class="kpi destaque"><span>Participação</span><b>{{ ("%.1f" % percentual_participacao).replace(".0", "").replace(".", ",") }}%</b><small>{{ total_participacoes }} de {{ total_alunos }} alunos</small></div>
   <div class="kpi"><span>Alunos ativos</span><b>{{ total_alunos }}</b><small>aptos a responder</small></div>
-  <div class="kpi"><span>Relatórios</span><b>0</b><small>publicados</small></div>
+  <div class="kpi"><span>Relatórios</span><b>{{ total_documentos }}</b><small>publicados</small></div>
 </div>
 
 <section class="grade grade-2 secao" id="avaliacoes">
@@ -76,18 +76,16 @@
   </div>
 </section>
 
-<section class="cartao secao" id="resultados">
-  <h2>Resultados</h2>
-  <p class="vazio">Área destinada à consulta dos resultados das avaliações.</p>
-</section>
-
-<section class="cartao secao" id="participacao">
-  <h2>Participação</h2>
-  <p class="vazio">Área destinada ao acompanhamento da participação dos alunos.</p>
-</section>
-
-<section class="cartao secao" id="relatorios">
-  <h2>Relatórios</h2>
-  <p class="vazio">Área destinada aos relatórios da CPA.</p>
+<section class="grade grade-cards secao" id="resultados">
+  <div class="cartao">
+    <h2>Resultados</h2>
+    <p class="texto-suave">Os resultados das pesquisas (CPA, Avaliação Docente e Egressos) ficam nos dashboards do Looker Studio.</p>
+    <div class="acoes"><a class="botao botao-sec" href="{{ url_for('dashboards.listar') }}">Abrir dashboards</a></div>
+  </div>
+  <div class="cartao">
+    <h2>Relatórios</h2>
+    <p class="texto-suave">Relatórios de autoavaliação e boletins publicados pela CPA, com download em PDF.</p>
+    <div class="acoes"><a class="botao botao-sec" href="{{ url_for('publico.relatorios') }}">Ver relatórios</a></div>
+  </div>
 </section>
 {% endblock %}

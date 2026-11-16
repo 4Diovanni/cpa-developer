@@ -7,13 +7,6 @@ from supabase_client import cliente_publico
 
 autenticacao = Blueprint("autenticacao", __name__)
 
-DESTINO_POR_PERFIL = {
-    "aluno": "modelo1",
-    "coordenador": "coordenador",
-    "avaliador": "modelo3",
-    "admin": "admin",
-}
-
 
 @autenticacao.route("/login", methods=["GET", "POST"])
 def login():
@@ -34,11 +27,12 @@ def login():
         if usuario and usuario.ativo:
             login_user(usuario)
             flash("Login realizado com sucesso!", "success")
-            return redirect(url_for(DESTINO_POR_PERFIL[usuario.perfil]))
+            # Todos os perfis entram pela área de dashboards; o menu leva às demais áreas.
+            return redirect(url_for("dashboards.listar"))
 
         flash("E-mail ou senha incorretos.", "danger")
 
-    return render_template("Painel.html")
+    return render_template("login.html")
 
 
 @autenticacao.route("/logout")
@@ -46,7 +40,7 @@ def login():
 def logout():
     logout_user()
     flash("Você saiu do sistema.", "success")
-    return redirect(url_for("autenticacao.login"))
+    return redirect(url_for("publico.inicio"))
 
 
 @autenticacao.route("/minha-conta")
