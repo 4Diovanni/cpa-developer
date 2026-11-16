@@ -301,17 +301,18 @@ Acesse `http://127.0.0.1:5000/saude`. A resposta `{"banco": "ok"}` confirma a co
 ### 4. Usuários de teste
 
 ```bash
-python -m scripts.criar_usuarios_teste
+python -m scripts.criar_usuarios_teste             # cria as contas que faltam
+python -m scripts.criar_usuarios_teste --redefinir # também troca a senha das existentes
 ```
 
-| Perfil | E-mail | Senha |
-|---|---|---|
-| Aluno | `aluno@portal.com` | `Aluno@123` |
-| Coordenador | `coordenador@portal.com` | `Coord@123` |
-| Avaliador MEC | `avaliador@portal.com` | `Avaliador@123` |
-| Admin | `admin@portal.com` | `Admin@123` |
+| Perfil | E-mail |
+|---|---|
+| Aluno | `aluno@portal.com` |
+| Coordenador | `coordenador@portal.com` |
+| Avaliador MEC | `avaliador@portal.com` |
+| Admin | `admin@portal.com` |
 
-> Senhas apenas para desenvolvimento. Troque-as ou remova essas contas antes de colocar o portal em produção. Novos usuários são criados pelo admin em `/admin`.
+> O repositório é público, então as senhas **não** ficam no código: o script gera senhas aleatórias e as mostra uma única vez no terminal. Guarde-as fora do repositório. Novos usuários são criados pelo admin em `/admin`.
 
 ### Checklist de permissões
 
