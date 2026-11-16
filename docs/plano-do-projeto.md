@@ -28,27 +28,27 @@ Coletar informações detalhadas com a CPA sobre as necessidades, perfis de aces
 
 Projetar a arquitetura do sistema, modelar o banco de dados e criar protótipos das telas para validação.
 
-- [x] Modelar o banco de dados com tabelas para usuários, perfis e permissões → `supabase/migrations/`
-- [ ] Criar protótipos de interface para cada perfil de usuário
-- [ ] Definir a estrutura de navegação e layout responsivo
-- [ ] Validar os protótipos com a CPA e ajustar conforme feedback
+- [x] Modelar o banco de dados com tabelas para usuários, perfis e permissões → [Modelagem](fase-2-modelagem/01-modelagem-banco-de-dados.md)
+- [x] Criar protótipos de interface para cada perfil de usuário → [Protótipos](fase-2-modelagem/02-prototipos-de-interface.md)
+- [x] Definir a estrutura de navegação e layout responsivo → [Navegação](fase-2-modelagem/03-estrutura-de-navegacao.md)
+- [x] Validar os protótipos com a CPA e ajustar conforme feedback → [Validação](fase-2-modelagem/04-validacao-dos-prototipos.md)
 
 ## Fase 3 — Desenvolvimento do portal
 
 Implementar o portal web com sistema de login, controle de acesso e integração dos dashboards.
 
-- [ ] Configurar o ambiente de desenvolvimento e versionamento de código
-- [ ] Desenvolver o sistema de autenticação e controle de acesso por perfil
-- [ ] Integrar os dashboards do Looker Studio nas páginas conforme permissões
-- [ ] Criar a página inicial com dashboards dinâmicos e responsivos
+- [x] Configurar o ambiente de desenvolvimento e versionamento de código → [Ambiente](fase-3-desenvolvimento/01-configuracao-do-ambiente.md)
+- [x] Desenvolver o sistema de autenticação e controle de acesso por perfil → [Autenticação](fase-3-desenvolvimento/02-autenticacao-e-controle-de-acesso.md)
+- [x] Integrar os dashboards do Looker Studio nas páginas conforme permissões → [Dashboards](fase-3-desenvolvimento/03-integracao-dos-dashboards.md)
+- [x] Criar a página inicial com dashboards dinâmicos e responsivos → [Página inicial](fase-3-desenvolvimento/04-pagina-inicial-e-dashboards.md)
 
 ## Fase 4 — Funcionalidades complementares
 
 Desenvolver o mural de devolutivas, a área de relatórios e a página de contato.
 
-- [ ] Implementar o mural de devolutivas com área administrativa para publicação
-- [ ] Criar a área de relatórios e boletins com upload e download de documentos
-- [ ] Desenvolver a página de contato com links para Google Chat e Google Meet
+- [x] Implementar o mural de devolutivas com área administrativa para publicação → `/devolutivas` (`routes/publico.py`)
+- [x] Criar a área de relatórios e boletins com upload e download de documentos → `/relatorios` (`routes/publico.py`)
+- [x] Desenvolver a página de contato com links para Google Chat e Google Meet → `/contato` (`routes/publico.py`)
 - [ ] Garantir que todas as páginas sejam responsivas e acessíveis
 
 ## Fase 5 — Testes e validação
