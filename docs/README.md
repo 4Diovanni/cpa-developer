@@ -31,3 +31,12 @@
 | 02 | [Autenticação e controle de acesso](fase-3-desenvolvimento/02-autenticacao-e-controle-de-acesso.md) | Login, sessão e as três camadas do RBAC |
 | 03 | [Integração dos dashboards](fase-3-desenvolvimento/03-integracao-dos-dashboards.md) | Incorporação do Looker Studio, matriz por perfil e gestão dos links |
 | 04 | [Página inicial e dashboards](fase-3-desenvolvimento/04-pagina-inicial-e-dashboards.md) | Página inicial pública e exibição responsiva dos painéis |
+
+## Fase 4 — Funcionalidades complementares
+
+| # | Documento | Conteúdo |
+|:-:|---|---|
+| 01 | [Mural de devolutivas](fase-4-funcionalidades/01-mural-de-devolutivas.md) | Página pública e publicação pelo admin |
+| 02 | [Relatórios e boletins](fase-4-funcionalidades/02-relatorios-e-boletins.md) | Repositório de PDFs, filtros e upload direto ao Storage |
+| 03 | [Página de contato](fase-4-funcionalidades/03-pagina-de-contato.md) | Google Chat, Google Meet e e-mail configuráveis |
+| 04 | Acessibilidade | *A fazer* |

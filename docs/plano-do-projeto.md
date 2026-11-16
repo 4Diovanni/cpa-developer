@@ -46,9 +46,9 @@ Implementar o portal web com sistema de login, controle de acesso e integração
 
 Desenvolver o mural de devolutivas, a área de relatórios e a página de contato.
 
-- [x] Implementar o mural de devolutivas com área administrativa para publicação → `/devolutivas` (`routes/publico.py`)
-- [x] Criar a área de relatórios e boletins com upload e download de documentos → `/relatorios` (`routes/publico.py`)
-- [x] Desenvolver a página de contato com links para Google Chat e Google Meet → `/contato` (`routes/publico.py`)
+- [x] Implementar o mural de devolutivas com área administrativa para publicação → [Mural](fase-4-funcionalidades/01-mural-de-devolutivas.md)
+- [x] Criar a área de relatórios e boletins com upload e download de documentos → [Relatórios](fase-4-funcionalidades/02-relatorios-e-boletins.md)
+- [x] Desenvolver a página de contato com links para Google Chat e Google Meet → [Contato](fase-4-funcionalidades/03-pagina-de-contato.md)
 - [ ] Garantir que todas as páginas sejam responsivas e acessíveis
 
 ## Fase 5 — Testes e validação

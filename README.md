@@ -6,7 +6,7 @@ Portal web da **Comissão Própria de Avaliação (CPA)** da Faculdade Impacta. 
 - **Dashboards analíticos restritos**: painéis do Looker Studio (antigo Google Data Studio), exibidos por `<iframe>` conforme o perfil do usuário autenticado.
 - **Painel administrativo**: a CPA gerencia dashboards, devolutivas, documentos e usuários sem alterar o código.
 
-> **Status:** Fase 1 (requisitos) concluída. Banco de dados implementado em `supabase/`. Aplicação Flask conectada ao Supabase, com login pelo Supabase Auth e áreas por perfil (Fase 3 em andamento).
+> **Status:** Fases 1 a 3 concluídas e todos os requisitos funcionais (RF01–RF09) implementados. Portal publicado na Vercel. Em andamento: revisão de acessibilidade (Fase 4), testes e validação (Fase 5), manual e treinamento (Fase 6).
 
 ---
 
@@ -182,11 +182,11 @@ cpa-developer/
 │   ├── README.md                 # índice da documentação
 │   ├── plano-do-projeto.md       # 6 fases, 24 tarefas, progresso
 │   ├── setup-supabase.md         # guia de configuração do Supabase
-│   └── fase-1-requisitos/
-│       ├── 01-ata-reuniao.md
-│       ├── 02-perfis-e-permissoes.md
-│       ├── 03-catalogo-dashboards-documentos.md
-│       └── 04-requisitos.md
+│   ├── fase-1-requisitos/        # ata, perfis, catálogo e requisitos
+│   ├── fase-2-modelagem/         # banco, protótipos, navegação e validação
+│   ├── fase-3-desenvolvimento/   # ambiente, autenticação, dashboards e página inicial
+│   ├── fase-4-funcionalidades/   # mural, relatórios e contato
+│   └── prints/                   # capturas de tela do portal
 └── supabase/
     ├── config.toml
     ├── migrations/
@@ -387,7 +387,7 @@ Conforme o [Plano do projeto](docs/plano-do-projeto.md). Requisitos completos em
 | 1 | Levantamento de requisitos | ✅ Concluída |
 | 2 | Modelagem e design | ✅ Banco, protótipos, navegação e ajustes da validação documentados |
 | 3 | Portal: ambiente, login, controle de acesso, dashboards, home | ✅ Concluída |
-| 4 | Mural, relatórios, contato, acessibilidade | 🟡 Mural, relatórios e contato prontos; falta revisão de acessibilidade |
+| 4 | Mural, relatórios, contato, acessibilidade | 🟡 Mural, relatórios e contato prontos e documentados; falta revisão de acessibilidade |
 | 5 | Testes funcionais, de usabilidade e de segurança | ⏳ A fazer |
 | 6 | Deploy, manual do usuário e treinamento | 🟡 Deploy na Vercel; faltam manual e treinamento |
 
