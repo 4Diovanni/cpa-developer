@@ -1,0 +1,32 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Portal CPA</title>
+</head>
+<body>
+    <h1>Portal CPA - Acesso</h1>
+
+    {% with mensagens = get_flashed_messages(with_categories=true) %}
+        {% for categoria, mensagem in mensagens %}
+            <p>{{ mensagem }}</p>
+        {% endfor %}
+    {% endwith %}
+
+    <form method="POST">
+        <label>E-mail:</label>
+        <input type="email" name="email" required>
+
+        <br><br>
+
+        <label>Senha:</label>
+        <input type="password" name="senha" required>
+
+        <br><br>
+
+        <button type="submit">Entrar</button>
+    </form>
+</body>
+</html>

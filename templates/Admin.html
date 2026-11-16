@@ -1,0 +1,420 @@
+
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portal CPA - Administração</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f2f4f8;
+            margin: 0;
+            padding: 30px;
+            color: #263238;
+        }
+
+        .container {
+    max-width: 1400px;
+    width: 100%;
+    margin: 0 auto;
+}
+
+       header {
+    display: block;
+    margin-bottom: 30px;
+}
+
+        .card {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            margin-bottom: 25px;
+            box-shadow: 0 2px 8px #00000012;
+        }
+
+        h1, h2 {
+            color: #173b65;
+        }
+
+        label {
+            display: block;
+            margin-top: 15px;
+            font-weight: bold;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 11px;
+            margin-top: 6px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            box-sizing: border-box;
+        }
+
+        button {
+            margin-top: 20px;
+            padding: 12px 20px;
+            background: #173b65;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .sair {
+            color: #b3261e;
+            text-decoration: none;
+        }
+
+        .mensagem {
+            padding: 12px;
+            background: #e8f5e9;
+            border-radius: 6px;
+            margin-bottom: 15px;
+        }
+       .indicadores {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 20px;
+    width: 100%;
+}
+
+        .indicadores .card {
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 2px 8px #00000012;
+        text-align: center;
+        }
+
+        .indicadores .card h3 {
+        color: #173b65;
+        font-size: 16px;
+        }
+
+        .indicadores .card h2 {
+        color: #263238;
+        font-size: 30px;
+        }
+
+        @media (max-width: 768px) {
+        .indicadores {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+.botoes-tema {
+    display: flex;
+    gap: 12px;
+    margin-top: 15px;
+}
+
+.botoes-tema a {
+    display: inline-block;
+    padding: 10px 16px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: bold;
+    transition: 0.3s;
+}
+
+.tema-claro {
+    background: #173b65;
+    color: white;
+}
+
+.tema-escuro {
+    background: #263238;
+    color: white;
+}
+
+.botoes-tema a:hover {
+    opacity: 0.8;
+}
+
+/* MENU LATERAL */
+.layout-admin {
+    display: flex;
+    min-height: 100vh;
+}
+
+.menu-lateral {
+    width: 240px;
+    min-width: 240px;
+    background: #173b65;
+    color: white;
+    padding: 25px 15px;
+    box-sizing: border-box;
+    border-radius: 12px;
+}
+
+.menu-lateral h2 {
+    color: white;
+    font-size: 21px;
+    margin-bottom: 30px;
+}
+
+.menu-lateral a {
+    display: block;
+    color: white;
+    text-decoration: none;
+    padding: 13px;
+    margin-bottom: 8px;
+    border-radius: 7px;
+    transition: background 0.3s;
+}
+
+.menu-lateral a:hover {
+    background: #285783;
+}
+.menu-lateral a.menu-ativo {
+    background: #285783;
+    border-left: 4px solid #60a5fa;
+    font-weight: bold;
+}
+
+.conteudo-admin {
+    flex: 1;
+    min-width: 0;
+    padding-left: 25px;
+}
+
+@media (max-width: 768px) {
+    .layout-admin {
+        flex-direction: column;
+    }
+
+    .menu-lateral {
+        width: 100%;
+    }
+
+    .conteudo-admin {
+        padding-left: 0;
+        padding-top: 20px;
+    }
+}
+html {
+    scroll-behavior: smooth;
+}
+
+section,
+#indicadores {
+    scroll-margin-top: 20px;
+}
+    </style>
+</head>
+
+<body>
+    <div class="layout-admin">
+
+        <aside class="menu-lateral">
+            <h2>Portal CPA</h2>
+
+            <a href="#inicio" onclick="ativarMenu(this)" class="menu-ativo">🏠 Início</a>
+
+<a href="#indicadores" onclick="ativarMenu(this)">📊 Indicadores</a>
+
+<a href="#cadastro" onclick="ativarMenu(this)">➕ Cadastrar usuário</a>
+
+<a href="#usuarios" onclick="ativarMenu(this)">👥 Usuários cadastrados</a>
+
+            <hr>
+
+            <a href="{{ url_for('admin_escuro') }}">🌙 Modo escuro</a>
+            <a href="{{ url_for('autenticacao.logout') }}">🚪 Sair do sistema</a>
+        </aside>
+
+        <main class="conteudo-admin">
+            <div class="container">
+
+        <header id="inicio">
+            <div>
+                <h1>Área Administrativa da CPA</h1>
+<div class="indicadores">
+    <div class="card">
+        <h3>Total de usuários</h3>
+        <h2>{{ total_usuarios }}</h2>
+    </div>
+
+    <div class="card">
+        <h3>Alunos</h3>
+        <h2>{{ total_alunos }}</h2>
+    </div>
+
+    <div class="card">
+        <h3>Coordenadores</h3>
+        <h2>{{ total_coordenadores }}</h2>
+    </div>
+
+    <div class="card">
+        <h3>Avaliadores</h3>
+        <h2>{{ total_avaliadores }}</h2>
+    </div>
+
+    <div class="card">
+        <h3>Administradores</h3>
+        <h2>{{ total_administradores }}</h2>
+    </div>
+
+    <div class="card">
+        <h3>Contas inativas</h3>
+        <h2>{{ total_inativos }}</h2>
+    </div>
+
+</div>
+                <p>Bem-vindo ao painel administrativo.</p>
+                <div class="botoes-tema">
+    <a href="{{ url_for('admin') }}" class="tema-claro">
+        ☀️ Modo claro
+    </a>
+
+    <a href="{{ url_for('admin_escuro') }}" class="tema-escuro">
+        🌙 Modo escuro
+    </a>
+</div>
+            </div>
+
+        </header>
+
+        {% with mensagens = get_flashed_messages(with_categories=true) %}
+            {% for categoria, mensagem in mensagens %}
+                <div class="mensagem">{{ mensagem }}</div>
+            {% endfor %}
+        {% endwith %}
+
+        <section class="card" id="cadastro">
+    <h2>Cadastrar novo usuário</h2>
+
+            <form method="POST" action="{{ url_for('admin') }}">
+
+                <label for="nome">Nome completo</label>
+                <input type="text" id="nome" name="nome" required>
+
+                <label for="email">E-mail</label>
+                <input type="email" id="email" name="email" required>
+
+                <label for="senha">Senha</label>
+                <input type="password" id="senha" name="senha" required>
+
+                <label for="perfil">Perfil de acesso</label>
+                <select id="perfil" name="perfil" required>
+                    <option value="">Selecione um perfil</option>
+                    <option value="aluno">Aluno</option>
+                    <option value="coordenador">Coordenador</option>
+                    <option value="avaliador">Avaliador</option>
+                    <option value="admin">Administrador</option>
+                </select>
+
+                <button type="submit">Cadastrar usuário</button>
+            </form>
+        </section>
+
+        <section class="card" id="usuarios">
+    <h2>Usuários cadastrados</h2>
+    <form method="GET" action="{{ url_for('admin') }}">
+    <input
+        type="text"
+        name="busca"
+        placeholder="Pesquisar por nome ou e-mail..."
+    >
+    <select name="perfil">
+    <option value="">Todos os perfis</option>
+    <option value="aluno">Aluno</option>
+    <option value="coordenador">Coordenador</option>
+    <option value="avaliador">Avaliador</option>
+    <option value="admin">Administrador</option>
+</select>
+
+    <button type="submit">Pesquisar</button>
+
+    <a href="{{ url_for('admin') }}">Limpar pesquisa</a>
+</form>
+
+    <table width="100%" cellpadding="10">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Nome</th>
+                <th>E-mail</th>
+                <th>Perfil</th>
+                <th>Status</th>
+                <th>Ações</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            {% for usuario in usuarios %}
+            <tr>
+                <td>{{ usuario.id }}</td>
+                <td>{{ usuario.nome }}</td>
+                <td>{{ usuario.email }}</td>
+                <td>{{ usuario.perfil }}</td>
+                <td>
+    {{ "Ativo" if usuario.ativo else "Inativo" }}
+</td>
+
+<td>
+    <a href="{{ url_for('editar_usuario', usuario_id=usuario.id) }}">
+        <button type="button">Editar</button>
+    </a>
+<form method="POST"
+      action="{{ url_for('excluir_usuario', usuario_id=usuario.id) }}"
+      onsubmit="return confirm('Tem certeza de que deseja excluir este usuário?');">
+
+    <input type="hidden" name="tema" value="claro">
+
+    <button type="submit" style="background: #dc2626;">
+        Excluir
+    </button>
+</form>
+
+    <form method="POST"
+          action="{{ url_for('alternar_usuario', usuario_id=usuario.id) }}">
+
+        <button type="submit">
+            {{ "Desativar" if usuario.ativo else "Ativar" }}
+        </button>
+
+    </form>
+</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</section>
+          
+            </div>
+        </main>
+    </div>
+   <script>
+function ativarMenu(elemento) {
+    document.querySelectorAll(".menu-lateral a").forEach(link => {
+        link.classList.remove("menu-ativo");
+    });
+
+    elemento.classList.add("menu-ativo");
+}
+window.addEventListener("scroll", function() {
+    const secoes = ["inicio", "cadastro", "usuarios"];
+    let secaoAtual = "inicio";
+
+    secoes.forEach(function(id) {
+        const elemento = document.getElementById(id);
+
+        if (elemento && elemento.getBoundingClientRect().top <= 150) {
+            secaoAtual = id;
+        }
+    });
+
+    document.querySelectorAll(".menu-lateral a").forEach(function(link) {
+        link.classList.remove("menu-ativo");
+
+        if (link.getAttribute("href") === "#" + secaoAtual) {
+            link.classList.add("menu-ativo");
+        }
+    });
+});
+</script>
+</body>
+</html>
