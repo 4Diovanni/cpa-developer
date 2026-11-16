@@ -34,7 +34,7 @@ Para o desenvolvimento integrado entre front-end, back-end e banco de dados, a e
 
 | Caminho | Conteúdo |
 |---|---|
-| `docs/` | Documentação técnica e funcional por fase (`fase-1-requisitos/`, `fase-2-modelagem/`, `fase-3-desenvolvimento/`) e capturas de tela (`prints/`). |
+| `docs/` | Documentação técnica e funcional por fase (`fase-1-requisitos/`, `fase-2-modelagem/`, `fase-3-desenvolvimento/`, `fase-4-funcionalidades/`…) e capturas de tela (`prints/`). |
 | `supabase/` | Migrations SQL (criação das tabelas e regras de acesso), `seed.sql` (carga inicial) e testes de RLS. |
 | `templates/` | Páginas HTML dinâmicas (`index.html`, `login.html`, `dashboards.html`, `devolutivas.html`, `relatorios.html`, `contato.html` e as áreas de cada perfil). |
 | `static/` | Estilos (`css/base.css`), scripts e imagens. Os PDFs **não** ficam aqui: vão para o Supabase Storage. |
